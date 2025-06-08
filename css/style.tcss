@@ -1,0 +1,26 @@
+#left {
+    width: 50%;
+    padding: 2;
+    border: solid gray;
+}
+
+#right {
+    width: 50%;
+    padding: 2;
+    border: solid gray;
+    background: #222;
+    color: #fff;
+}
+
+.label {
+    margin: 1;
+}
+
+.result {
+    margin-top: 2;
+    text-align: center;
+}
+
+RadioSet {
+    width: 50%;
+}

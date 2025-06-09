@@ -12,6 +12,7 @@ class PrintInputApp(App):
     CSS_PATH = "css/style.tcss"
     data ={}
     is_page_sort_enabled = False
+    webprint = campus_print.in_campus_print.Webprint(campus_print.settings.getpsw())
     def compose(self) -> ComposeResult:
         with Horizontal():
             # ScrollableContainerでラップしてスクロール可能に
@@ -111,7 +112,7 @@ class PrintInputApp(App):
         result = f"印刷の向き: {orientation_str}\nとじ方向: {edge_str}\n{layout}"
         return result
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "submit_btn":
             # 必須のRadioSetのIDリスト
             required_radios = [
@@ -128,21 +129,32 @@ class PrintInputApp(App):
             if missing:
                 self.text_error.update("すべてのラジオボタンを選択してください")
                 return
+            #file_inputが空でないことを確認
+            if not self.file_input.value:
+                self.text_error.update("ファイルパスを入力してください")
+                return
+            if not os.path.isfile(self.file_input.value):
+                self.text_error.update("指定されたファイルが存在しません")
+                return
+            #file_inputがPDFファイルであることを確認
+            if not self.file_input.value.lower().endswith('.pdf'):
+                self.text_error.update("PDFファイルを選択してください")
+                return
             self.data["copies"] = self.count_input.value
             with open("print_data.json", "w") as f:
                 json.dump(self.data, f, indent=4)
             # レイアウト図形を右画面に表示
             layout_ascii = self.get_layout_ascii()
             self.output.update(f"プリントレイアウト:\n{layout_ascii}")
-            userdata = campus_print.settings.getpsw() # 認証情報の取得
-            webprint =campus_print.in_campus_print.Webprint(userdata)
-            defaultformat=webprint.get_defaultformat()
+            defaultformat=self.webprint.get_defaultformat()
             newformat = {**defaultformat,**self.data}
-            webprint.set_printformat(newformat)
-            webprint.set_pdfdata(self.file_input.value)
-            webprint.filename = os.path.basename(self.file_input.value)
-            code = webprint.pdfprint()
+            self.webprint.set_printformat(newformat)
+            # PDFデータを設定して印刷
+            self.webprint.set_pdfdata(self.file_input.value)
+            self.webprint.filename = os.path.basename(self.file_input.value)
+            code = self.webprint.pdfprint()
             self.text_error.update("送信終了: " + str(code))
+            self.file_input.value = ""
 
 if __name__ == "__main__":
     campus_print.settings.getpsw() # 認証情報の取得
